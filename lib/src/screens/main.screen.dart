@@ -60,11 +60,16 @@ class _MainScreenState extends State<MainScreen> {
         }
         _loading = false;
       });
+    }).catchError((e) {
+      setState(() {
+        _loading = false;
+      });
     });
   }
 
   _onSearch(String text) {
     _searchText = text;
+    _loading = false;
     _fetchGifs(q: text, offset: 0);
   }
 
