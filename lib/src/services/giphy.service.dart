@@ -8,7 +8,7 @@ const BASE_URL = 'https://api.giphy.com/v1';
 
 class GiphyService {
   static final GiphyService _giphyService = new GiphyService._internal();
-  List<GiphyModel> list = [];
+  List<GiphyModel> items = [];
   List<GiphyModel> favorites = [];
 
   factory GiphyService() {
@@ -26,11 +26,11 @@ class GiphyService {
         '$BASE_URL/gifs/search?api_key=${Config.GIPHY_API_KEY}&q=$q&limit=$limit&offset=$offset&lang=$lang');
 
     if (res.statusCode != 200) {
-      return list;
+      return items;
     }
 
     var jsonResponse = convert.jsonDecode(res.body);
-    list = jsonResponse['data'].isNotEmpty
+    items = jsonResponse['data'].isNotEmpty
         ? List<GiphyModel>.from(jsonResponse['data'].map((item) {
             item['url'] = item['images']['fixed_width']['url'];
             item['isFavorite'] = false;
@@ -43,7 +43,7 @@ class GiphyService {
           }).toList())
         : [];
 
-    return list;
+    return items;
   }
 
   List<GiphyModel> toggleAsFavorite(int index) {
@@ -51,19 +51,46 @@ class GiphyService {
       return favorites;
     }
 
-    GiphyModel elm = list[index];
+    GiphyModel giphy;
+    try {
+      giphy = items[index];
+    } catch (e) {}
 
-    if (elm == null) {
+    if (giphy == null) {
       return favorites;
     }
 
-    elm.isFavorite = !elm.isFavorite;
+    giphy.isFavorite = !giphy.isFavorite;
 
-    if (elm.isFavorite == true) {
-      favorites.add(elm);
+    if (giphy.isFavorite == true) {
+      favorites.add(giphy);
     } else {
-      favorites = favorites.where((item) => item.id != elm.id).toList();
+      favorites = favorites.where((item) => item.id != giphy.id).toList();
     }
+
+    return favorites;
+  }
+
+  List<GiphyModel> removeFromFavorites(int index) {
+    if (index == null) {
+      return favorites;
+    }
+
+    GiphyModel giphy;
+    try {
+      giphy = favorites[index];
+    } catch (e) {}
+
+    if (giphy == null) {
+      return favorites;
+    }
+
+    var itemIndex = items.indexWhere((item) => item.id == giphy.id);
+    if (itemIndex != -1) {
+      items[itemIndex].isFavorite = false;
+    }
+
+    favorites.removeAt(index);
 
     return favorites;
   }

@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-const SEARCH_TIMEOUT = 2000; // as ms
+const DEFAULT_TIMEOUT = 2000; // as ms
 
 class SearchBar extends StatefulWidget {
-  SearchBar({Key key, this.onChanged, this.focusNode}) : super(key: key);
-
   final ValueChanged<String> onChanged;
   final FocusNode focusNode;
+  final int timeoutMs;
+
+  SearchBar({Key key, this.onChanged, this.focusNode, this.timeoutMs})
+      : super(key: key);
 
   @override
   _SearchBarState createState() => _SearchBarState();
@@ -15,8 +17,8 @@ class SearchBar extends StatefulWidget {
 
 class _SearchBarState extends State<SearchBar> {
   final _searchController = TextEditingController();
-  Duration _duration = const Duration(milliseconds: SEARCH_TIMEOUT);
   String _text = '';
+  Duration _duration;
   Timer _timer;
 
   void _handleTimeout() {
@@ -39,6 +41,7 @@ class _SearchBarState extends State<SearchBar> {
   @override
   void initState() {
     super.initState();
+    _duration = Duration(milliseconds: widget.timeoutMs ?? DEFAULT_TIMEOUT);
     _searchController.addListener(_searchListener);
   }
 
@@ -54,7 +57,7 @@ class _SearchBarState extends State<SearchBar> {
   @override
   Widget build(BuildContext context) {
     return TextField(
-        focusNode: widget.focusNode,
+        focusNode: widget.focusNode ?? null,
         controller: _searchController,
         autocorrect: false,
         autofocus: true,

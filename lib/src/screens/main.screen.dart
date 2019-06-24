@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:giphy_search/src/widgets/search_bar.widget.dart';
-import 'package:giphy_search/src/models/giphy.model.dart';
+import 'package:giphy_search/src/widgets/gifs_grid.widget.dart';
 import 'package:giphy_search/src/services/giphy.service.dart';
 
 class MainScreen extends StatefulWidget {
@@ -11,7 +11,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final _giphyService = GiphyService();
-  int _favoritesCount = 0;
   bool _loading = false;
   FocusNode _searchBarFocusNode;
 
@@ -32,11 +31,11 @@ class _MainScreenState extends State<MainScreen> {
 
   _onFavorite(int index) {
     setState(() {
-      _favoritesCount = (_giphyService.toggleAsFavorite(index)).length;
+      _giphyService.toggleAsFavorite(index);
     });
   }
 
-  _searchBarUnfocus() {
+  _onGridTap() {
     if (_searchBarFocusNode.hasFocus) {
       _searchBarFocusNode.unfocus();
     }
@@ -58,52 +57,29 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: SearchBar(onChanged: _onSearch, focusNode: _searchBarFocusNode),
+        title: SearchBar(
+          onChanged: _onSearch,
+          focusNode: _searchBarFocusNode,
+          timeoutMs: 1500,
+        ),
         actions: <Widget>[
-          FlatButton(
-            child: Text(
-              _favoritesCount.toString(),
-              style: TextStyle(color: Colors.yellow, fontSize: 16.0),
+          Container(
+            child: FlatButton(
+              color: Colors.white70,
+              child: Text(
+                _giphyService.favorites.length.toString(),
+                style: TextStyle(color: Colors.blue, fontSize: 18.0),
+              ),
+              onPressed: _pushFavorites,
             ),
-            onPressed: _pushFavorites,
           ),
         ],
       ),
-      body: Stack(
-        children: <Widget>[
-          GridView.builder(
-            itemCount: _giphyService.list.length,
-            gridDelegate:
-                SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-            itemBuilder: (BuildContext context, int index) {
-              GiphyModel item = _giphyService.list[index];
-              return GestureDetector(
-                child: Card(
-                  elevation: 1.0,
-                  child: Stack(
-                    children: <Widget>[
-                      Container(
-                        alignment: Alignment.center,
-                        child: Image.network(item.url),
-                      ),
-                      Container(
-                        alignment: Alignment.topRight,
-                        child: IconButton(
-                          icon: item.isFavorite
-                              ? Icon(Icons.favorite, color: Colors.red)
-                              : Icon(Icons.favorite_border, color: Colors.red),
-                          onPressed: () => _onFavorite(index),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                onTap: _searchBarUnfocus,
-              );
-            },
-          ),
-          Center(child: _loading ? CircularProgressIndicator() : null),
-        ],
+      body: GifsGrid(
+        items: _giphyService.items,
+        loading: _loading,
+        onFavorite: _onFavorite,
+        onGridTap: _onGridTap,
       ),
     );
   }
