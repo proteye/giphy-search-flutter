@@ -21,6 +21,22 @@ class _SearchBarState extends State<SearchBar> {
   Duration _duration;
   Timer _timer;
 
+  @override
+  void initState() {
+    super.initState();
+    _duration = Duration(milliseconds: widget.timeoutMs ?? DEFAULT_TIMEOUT);
+    _searchController.addListener(_searchListener);
+  }
+
+  @override
+  void dispose() {
+    if (_timer != null) {
+      _timer.cancel();
+    }
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _handleTimeout() {
     if (widget.onChanged != null) {
       widget.onChanged(_text);
@@ -36,22 +52,6 @@ class _SearchBarState extends State<SearchBar> {
     }
     _timer = new Timer(_duration, _handleTimeout);
     _text = _searchController.text.isNotEmpty ? _searchController.text : '';
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _duration = Duration(milliseconds: widget.timeoutMs ?? DEFAULT_TIMEOUT);
-    _searchController.addListener(_searchListener);
-  }
-
-  @override
-  void dispose() {
-    if (_timer != null) {
-      _timer.cancel();
-    }
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override

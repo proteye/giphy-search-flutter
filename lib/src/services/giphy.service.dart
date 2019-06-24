@@ -5,11 +5,13 @@ import 'package:giphy_search/src/models/giphy.model.dart';
 import 'package:giphy_search/src/config.dart';
 
 const BASE_URL = 'https://api.giphy.com/v1';
+const DEFAULT_LIMIT = 20;
 
 class GiphyService {
   static final GiphyService _giphyService = new GiphyService._internal();
   List<GiphyModel> items = [];
   List<GiphyModel> favorites = [];
+  Map<String, int> totalCount = Map();
 
   factory GiphyService() {
     return _giphyService;
@@ -19,9 +21,14 @@ class GiphyService {
 
   Future<List<GiphyModel>> search(
       {String q = '',
-      int limit = 20,
+      int limit = DEFAULT_LIMIT,
       int offset = 0,
       String lang = 'en'}) async {
+    if (q.isEmpty) {
+      items = [];
+      return items;
+    }
+
     var res = await http.get(
         '$BASE_URL/gifs/search?api_key=${Config.GIPHY_API_KEY}&q=$q&limit=$limit&offset=$offset&lang=$lang');
 
@@ -30,7 +37,10 @@ class GiphyService {
     }
 
     var jsonResponse = convert.jsonDecode(res.body);
-    items = jsonResponse['data'].isNotEmpty
+    totalCount[q] = jsonResponse['pagination'].isNotEmpty
+        ? jsonResponse['pagination']['total_count']
+        : 0;
+    var nextItems = jsonResponse['data'].isNotEmpty
         ? List<GiphyModel>.from(jsonResponse['data'].map((item) {
             item['url'] = item['images']['fixed_width']['url'];
             item['isFavorite'] = false;
@@ -42,6 +52,13 @@ class GiphyService {
             return GiphyModel.fromMap(item);
           }).toList())
         : [];
+
+    if (offset == 0) {
+      items = nextItems;
+    } else {
+      items.addAll(
+          Iterable.generate(nextItems.length, (index) => nextItems[index]));
+    }
 
     return items;
   }

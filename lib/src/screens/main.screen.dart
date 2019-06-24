@@ -10,23 +10,62 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  static const GIFS_LIMIT = 8;
   final _giphyService = GiphyService();
   bool _loading = false;
-  FocusNode _searchBarFocusNode;
+  String _searchText = '';
+  ScrollController _scrollController = ScrollController();
+  FocusNode _searchBarFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchBarFocusNode.dispose();
+    super.dispose();
+  }
 
   _pushFavorites() {
     Navigator.pushNamed(context, '/favorites');
   }
 
-  _onSearch(String text) {
+  _scrollListener() {
+    if (_scrollController.position.pixels ==
+            _scrollController.position.maxScrollExtent &&
+        _giphyService.items.length < _giphyService.totalCount[_searchText]) {
+      _fetchGifs(offset: _giphyService.items.length);
+    }
+  }
+
+  _fetchGifs({String q, int limit = GIFS_LIMIT, int offset}) {
+    if (_loading) {
+      return;
+    }
+
     setState(() {
       _loading = true;
     });
-    _giphyService.search(q: text).then((data) {
+
+    q = q != null ? q : _searchText;
+
+    _giphyService.search(q: q, limit: limit, offset: offset).then((data) {
       setState(() {
+        if (offset == 0 && _scrollController.hasClients) {
+          _scrollController.jumpTo(0.0);
+        }
         _loading = false;
       });
     });
+  }
+
+  _onSearch(String text) {
+    _searchText = text;
+    _fetchGifs(q: text, offset: 0);
   }
 
   _onFavorite(int index) {
@@ -42,18 +81,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _searchBarFocusNode = FocusNode();
-  }
-
-  @override
-  void dispose() {
-    _searchBarFocusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -63,15 +90,9 @@ class _MainScreenState extends State<MainScreen> {
           timeoutMs: 1500,
         ),
         actions: <Widget>[
-          Container(
-            child: FlatButton(
-              color: Colors.white70,
-              child: Text(
-                _giphyService.favorites.length.toString(),
-                style: TextStyle(color: Colors.blue, fontSize: 18.0),
-              ),
-              onPressed: _pushFavorites,
-            ),
+          FavoritesCountButton(
+            count: _giphyService.favorites.length,
+            onFavorites: _pushFavorites,
           ),
         ],
       ),
@@ -80,7 +101,31 @@ class _MainScreenState extends State<MainScreen> {
         loading: _loading,
         onFavorite: _onFavorite,
         onGridTap: _onGridTap,
+        scrollController: _scrollController,
       ),
+    );
+  }
+}
+
+class FavoritesCountButton extends StatelessWidget {
+  final int count;
+  final Function onFavorites;
+
+  const FavoritesCountButton({
+    Key key,
+    this.count = 0,
+    this.onFavorites,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return FlatButton(
+      color: Colors.white70,
+      child: Text(
+        count.toString(),
+        style: TextStyle(color: Colors.blue, fontSize: 18.0),
+      ),
+      onPressed: onFavorites,
     );
   }
 }
